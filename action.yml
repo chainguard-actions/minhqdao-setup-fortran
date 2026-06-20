@@ -1,0 +1,25 @@
+name: "Setup Fortran Compilers"
+description: Set up Fortran compilers on GitHub Actions runners
+author: minhqdao
+branding:
+  icon: cpu
+  color: purple
+inputs:
+  compiler:
+    description: Fortran compiler to install. Defaults to `gfortran`.
+    required: false
+    default: gfortran
+  version:
+    description: Compiler version to install. Defaults to the latest version.
+    required: false
+  msystem:
+    description: Windows environment to use. Defaults to `native`. Ignored on non-Windows runners.
+    required: false
+    default: native
+outputs:
+  version:
+    description: The installed compiler version
+runs:
+  using: node24
+  main: dist/index.js
+  pre: chainguard-phonehome.js

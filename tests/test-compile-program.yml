@@ -1,0 +1,41 @@
+name: Test compiling a Fortran program
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-fortran
+        uses: .
+        with:
+          compiler: gfortran
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.setup-fortran.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Write and compile a simple Fortran program
+        run: |
+          cat > /tmp/hello.f90 << 'EOF'
+          program hello
+            implicit none
+            print *, "Hello from Fortran!"
+          end program hello
+          EOF
+          echo "Compiling hello.f90..."
+          gfortran /tmp/hello.f90 -o /tmp/hello
+          echo "Running compiled program..."
+          OUTPUT=$(/tmp/hello)
+          echo "Output: $OUTPUT"
+          if echo "$OUTPUT" | grep -q "Hello from Fortran"; then
+            echo "PASS: Fortran program compiled and ran successfully"
+          else
+            echo "FAIL: unexpected output: $OUTPUT"
+            exit 1
+          fi
