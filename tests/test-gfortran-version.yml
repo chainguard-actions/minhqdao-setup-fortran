@@ -1,0 +1,48 @@
+name: Test gfortran with specific version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ACTIONS_CACHE_URL: ""
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Ensure sudo is available
+        run: |
+          if ! command -v sudo &>/dev/null; then
+            apt-get install -y sudo 2>/dev/null || true
+          fi
+          echo "sudo check done"
+      - id: setup
+        uses: .
+        with:
+          compiler: gfortran
+          version: "12"
+      - name: Assert version output is non-empty
+        env:
+          ACTUAL: ${{ steps.setup.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert gfortran is available on PATH
+        run: |
+          if ! command -v gfortran &>/dev/null; then
+            echo "FAIL: gfortran not found on PATH"
+            exit 1
+          fi
+          echo "PASS: gfortran found at $(command -v gfortran)"
+      - name: Assert installed version contains major version 12
+        env:
+          ACTUAL: ${{ steps.setup.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [[ "$ACTUAL" != *"12"* ]]; then
+            echo "FAIL: expected version output to contain '12', got: $ACTUAL"
+            exit 1
+          fi
+          echo "PASS: version output contains '12'"

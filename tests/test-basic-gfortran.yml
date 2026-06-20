@@ -1,0 +1,52 @@
+name: Test basic gfortran setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ACTIONS_CACHE_URL: ""
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Ensure sudo is available
+        run: |
+          if ! command -v sudo &>/dev/null; then
+            apt-get install -y sudo 2>/dev/null || true
+          fi
+          echo "sudo check done"
+      - id: setup
+        uses: .
+        with:
+          compiler: gfortran
+      - name: Assert version output is non-empty
+        env:
+          ACTUAL: ${{ steps.setup.outputs.version }}
+        run: |
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$ACTUAL"
+      - name: Assert gfortran is available on PATH
+        run: |
+          if ! command -v gfortran &>/dev/null; then
+            echo "FAIL: gfortran not found on PATH"
+            exit 1
+          fi
+          echo "PASS: gfortran found at $(command -v gfortran)"
+      - name: Assert gfortran can compile a simple program
+        run: |
+          cat > /tmp/hello.f90 << 'EOF'
+          program hello
+            print *, "Hello, Fortran!"
+          end program hello
+          EOF
+          gfortran /tmp/hello.f90 -o /tmp/hello
+          OUTPUT=$(/tmp/hello)
+          echo "Output: $OUTPUT"
+          if [[ "$OUTPUT" != *"Hello, Fortran!"* ]]; then
+            echo "FAIL: unexpected output from compiled Fortran program"
+            exit 1
+          fi
+          echo "PASS: Fortran program compiled and ran successfully"
