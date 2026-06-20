@@ -1,0 +1,50 @@
+name: Test setup-fortran with default compiler input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ImageOS: ubuntu24
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          version: "12"
+      - name: Assert version output is non-empty
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+        run: |
+          echo "version output: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version output is non-empty"
+      - name: Assert gfortran is available in PATH
+        run: |
+          echo "Checking gfortran is in PATH..."
+          if ! command -v gfortran &>/dev/null; then
+            echo "FAIL: gfortran not found in PATH after setup"
+            exit 1
+          fi
+          echo "PASS: gfortran is available"
+          gfortran --version
+      - name: Assert Fortran compilation works
+        run: |
+          echo "Testing basic Fortran compilation..."
+          cat > /tmp/hello.f90 << 'EOF'
+          program hello
+            print *, "Hello, Fortran!"
+          end program hello
+          EOF
+          gfortran /tmp/hello.f90 -o /tmp/hello
+          OUTPUT=$(/tmp/hello)
+          echo "Output: $OUTPUT"
+          if echo "$OUTPUT" | grep -q "Hello, Fortran!"; then
+            echo "PASS: Fortran compilation and execution succeeded"
+          else
+            echo "FAIL: Fortran program did not produce expected output"
+            exit 1
+          fi
