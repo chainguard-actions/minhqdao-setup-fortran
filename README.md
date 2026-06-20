@@ -1,14 +1,272 @@
-# minhqdao/setup-fortran
+# setup-fortran
 
-Set up Fortran compilers on GitHub Actions runners
+A GitHub Action to install and configure Fortran compilers across Linux, macOS, and Windows runners.
 
-Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at [https://github.com/minhqdao/setup-fortran](https://github.com/minhqdao/setup-fortran).
+## Usage
 
-## Versions
+```yaml
+- uses: minhqdao/setup-fortran@v1
+```
 
-| Version | Tag | Upstream commit |
-|---------|-----|-----------------|
-| v1.3.1 | [`v1.3.1`](https://github.com/chainguard-actions/minhqdao-setup-fortran/tree/v1.3.1) | [`df02cf9`](https://github.com/minhqdao/setup-fortran/commit/df02cf9eaf22a54eb07aa40503cdf9576ed88008) |
+## Inputs
+
+| Input | Description | Default |
+|-------|-------------|---------|
+| `compiler` | Compiler to install (`gfortran`, `ifx`, `ifort`, `nvfortran`, `aocc`, `lfortran`, `flang`) | `gfortran` |
+| `version` | Compiler version to install | `latest` |
+| `msystem` | MSYS2 subsystem (`native`, `ucrt64`, `clang64`) | `native` |
+
+## Compiler support
+
+### `gfortran`
+
+| Version | ubuntu-24.04 | ubuntu-22.04 | ubuntu-24.04-arm | ubuntu-22.04-arm | macos-26 | macos-26-intel | macos-15 | macos-15-intel | macos-14 | windows-2025 | windows-2022 | windows-2025 (ucrt64) | windows-2022 (ucrt64) |
+|---------|--------------|--------------|------------------|------------------|----------|----------------|----------|----------------|----------|--------------|--------------|----------------------|----------------------|
+| latest  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 16      | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| 15      | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| 14      | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| 13      | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| 12      | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| 11      | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+
+---
+
+### `ifx`
+
+| Version | ubuntu-24.04 | ubuntu-22.04 | windows-2025 | windows-2022 |
+|---------|--------------|--------------|--------------|--------------|
+| latest   | ✅ | ✅ | ✅ | ✅ |
+| 2026.0.0 | ❌ | ❌ | ✅ | ✅ |
+| 2026.0   | ✅ | ✅ | ❌ | ❌ |
+| 2025.3.3 | ❌ | ❌ | ✅ | ✅ |
+| 2025.3.2 | ❌ | ❌ | ✅ | ✅ |
+| 2025.3.1 | ❌ | ❌ | ✅ | ✅ |
+| 2025.3.0 | ❌ | ❌ | ✅ | ✅ |
+| 2025.3   | ✅ | ✅ | ❌ | ❌ |
+| 2025.2.1 | ❌ | ❌ | ✅ | ✅ |
+| 2025.2.0 | ❌ | ❌ | ✅ | ✅ |
+| 2025.2   | ✅ | ✅ | ❌ | ❌ |
+| 2025.1.0 | ❌ | ❌ | ✅ | ✅ |
+| 2025.1   | ✅ | ✅ | ❌ | ❌ |
+| 2025.0.0 | ❌ | ❌ | ✅ | ✅ |
+| 2025.0   | ✅ | ✅ | ❌ | ❌ |
+| 2024.2.1 | ❌ | ❌ | ✅ | ✅ |
+| 2024.2.0 | ❌ | ❌ | ✅ | ✅ |
+| 2024.2   | ✅ | ✅ | ❌ | ❌ |
+| 2024.1.0 | ❌ | ❌ | ✅ | ✅ |
+| 2024.1   | ✅ | ✅ | ❌ | ❌ |
+| 2024.0.2 | ❌ | ❌ | ✅ | ✅ |
+| 2024.0.1 | ❌ | ❌ | ✅ | ✅ |
+| 2024.0   | ✅ | ✅ | ❌ | ❌ |
+| 2023.2.4 | ✅ | ✅ | ❌ | ❌ |
+| 2023.2.3 | ✅ | ✅ | ❌ | ❌ |
+| 2023.2.2 | ✅ | ✅ | ❌ | ❌ |
+| 2023.2.1 | ✅ | ✅ | ✅ | ✅ |
+| 2023.2.0 | ✅ | ✅ | ✅ | ✅ |
+| 2023.1.0 | ✅ | ✅ | ✅ | ✅ |
+| 2023.0.0 | ✅ | ✅ | ❌ | ❌ |
+| 2022.3.0 | ❌ | ❌ | ✅ | ✅ |
+| 2022.2.1 | ✅ | ✅ | ❌ | ❌ |
+| 2022.2.0 | ✅ | ✅ | ✅ | ✅ |
+| 2022.1.0 | ✅ | ✅ | ❌ | ❌ |
+| 2022.0.2 | ✅ | ✅ | ❌ | ❌ |
+| 2022.0.1 | ✅ | ✅ | ❌ | ❌ |
+| 2021.4.0 | ✅ | ✅ | ❌ | ❌ |
+| 2021.3.0 | ✅ | ✅ | ❌ | ❌ |
+| 2021.2.0 | ✅ | ✅ | ❌ | ❌ |
+| 2021.1.2 | ✅ | ✅ | ❌ | ❌ |
+| 2021.1.1 | ✅ | ✅ | ❌ | ❌ |
+
+---
+
+### `ifort`
+
+| Version | ubuntu-24.04 | ubuntu-22.04 | macos-26-intel | macos-15-intel | windows-2025 | windows-2022 |
+|---------|--------------|--------------|----------------|----------------|--------------|--------------|
+| latest  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 2021.13 | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| 2021.12 | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| 2021.11 | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| 2021.10 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 2021.9  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 2021.8  | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| 2021.7  | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
+| 2021.6  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 2021.5  | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| 2021.4  | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 2021.3  | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| 2021.2  | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| 2021.1  | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+
+---
+
+### `nvfortran`
+
+| Version | ubuntu-24.04 | ubuntu-22.04 | ubuntu-24.04-arm | ubuntu-22.04-arm |
+|---------|--------------|--------------|------------------|------------------|
+| latest | ✅ | ✅ | ✅ | ✅ |
+| 26.3   | ✅ | ✅ | ✅ | ✅ |
+| 26.1   | ✅ | ✅ | ✅ | ✅ |
+| 25.11  | ✅ | ✅ | ✅ | ✅ |
+| 25.9   | ✅ | ✅ | ✅ | ✅ |
+| 25.7   | ✅ | ✅ | ✅ | ✅ |
+| 25.5   | ✅ | ✅ | ✅ | ✅ |
+| 25.3   | ✅ | ✅ | ✅ | ✅ |
+| 25.1   | ✅ | ✅ | ✅ | ✅ |
+| 24.11  | ✅ | ✅ | ✅ | ✅ |
+| 24.9   | ✅ | ✅ | ✅ | ✅ |
+| 24.7   | ✅ | ✅ | ✅ | ✅ |
+| 24.5   | ✅ | ✅ | ✅ | ✅ |
+| 24.3   | ✅ | ✅ | ✅ | ✅ |
+| 24.1   | ✅ | ✅ | ✅ | ✅ |
+| 23.11  | ✅ | ✅ | ✅ | ✅ |
+| 23.9   | ✅ | ✅ | ✅ | ✅ |
+| 23.7   | ✅ | ✅ | ✅ | ✅ |
+| 23.5   | ✅ | ✅ | ✅ | ✅ |
+| 23.3   | ✅ | ✅ | ✅ | ✅ |
+| 23.1   | ✅ | ✅ | ✅ | ✅ |
+| 22.11  | ✅ | ✅ | ✅ | ✅ |
+| 22.9   | ✅ | ✅ | ✅ | ✅ |
+| 22.7   | ✅ | ✅ | ✅ | ✅ |
+| 22.5   | ✅ | ✅ | ✅ | ✅ |
+| 22.3   | ✅ | ✅ | ✅ | ✅ |
+| 22.2   | ✅ | ✅ | ✅ | ✅ |
+| 22.1   | ✅ | ✅ | ✅ | ✅ |
+| 21.11  | ✅ | ✅ | ✅ | ✅ |
+| 21.9   | ✅ | ✅ | ✅ | ✅ |
+| 21.7   | ✅ | ✅ | ✅ | ✅ |
+| 21.5   | ✅ | ✅ | ✅ | ✅ |
+| 21.3   | ✅ | ✅ | ✅ | ✅ |
+| 21.2   | ✅ | ✅ | ✅ | ✅ |
+| 21.1   | ❌ | ❌ | ✅ | ✅ |
+| 20.11  | ✅ | ✅ | ✅ | ✅ |
+
+---
+
+### `aocc`
+
+| Version | ubuntu-24.04 | ubuntu-22.04 |
+|---------|--------------|--------------|
+| latest  | ✅ | ✅ |
+| 5.1     | ✅ | ✅ |
+| 5.0     | ✅ | ✅ |
+| 4.2     | ✅ | ✅ |
+| 4.1     | ✅ | ✅ |
+
+---
+
+### `lfortran`
+
+| Version | ubuntu-24.04 | ubuntu-22.04 | macos-26 | macos-26-intel | macos-15 | macos-15-intel | macos-14 | windows-2025 | windows-2022 | windows-2025 (ucrt64) | windows-2022 (ucrt64) | windows-2025 (clang64) | windows-2022 (clang64) |
+|---------|--------------|--------------|----------|----------------|----------|----------------|----------|--------------|--------------|----------------------|----------------------|----------------------|----------------------|
+| latest  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 0.63.0  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 0.62.0  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 0.61.0  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 0.60.0  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 0.59.0  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 0.58.0  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 0.57.0  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+
+---
+
+
+### `flang` (LLVM Flang)
+
+| Version | ubuntu-24.04 | ubuntu-22.04 | ubuntu-24.04-arm | ubuntu-22.04-arm | macos-26 | macos-26-intel | macos-15 | macos-15-intel | macos-14 | windows-2025 | windows-2022 | windows-11-arm | windows-2025 (ucrt64) | windows-2022 (ucrt64) | windows-2025 (clang64) | windows-2022 (clang64) |
+|---------|--------------|--------------|------------------|------------------|----------|----------------|----------|----------------|----------|--------------|--------------|----------------|----------------------|----------------------|----------------------|----------------------|
+| latest  | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 22      | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 21      | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 20      | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| 19      | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| 18      | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| 17      | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| 16      | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+> Specific patch versions (e.g. `21.1.6`) are also accepted on macOS and Windows runners and are validated against available GitHub releases. If the requested patch does not exist, an error is thrown. Patches aren't specifically tested.
+
+## Examples
+
+### Basic usage
+
+```yaml
+steps:
+  - uses: actions/checkout@v4
+  - uses: minhqdao/setup-fortran@v1
+  - run: ${{ env.FC }} hello.f90 -o hello
+```
+
+This defaults to `gfortran` and the newest version available on that platform.
+
+### Specific version
+
+```yaml
+- uses: minhqdao/setup-fortran@v1
+  with:
+    compiler: ifx
+    version: "2026.0"
+```
+
+### Matrix build
+
+```yaml
+strategy:
+  matrix:
+    os: [ubuntu-latest, macos-latest, windows-latest]
+    toolchain:
+      - { compiler: gfortran, version: "15" }
+      - { compiler: nvfortran, version: "26.3" }
+      - { compiler: lfortran, version: "0.63.0" }
+    exclude:
+      - os: macos-latest
+        toolchain: { compiler: nvfortran, version: "26.3"}
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: minhqdao/setup-fortran@v1
+        with:
+          compiler: ${{ matrix.toolchain.compiler }}
+          version: ${{ matrix.toolchain.version }}
+      - run: ${{ env.FC }} hello.f90 -o hello
+```
+
+### Windows with MSYS2
+
+```yaml
+- uses: minhqdao/setup-fortran@v1
+  with:
+    compiler: lfortran
+    msystem: ucrt64
+```
+
+## Outputs
+
+| Output | Description |
+|--------|-------------|
+| `version` | Resolved version of the installed compiler |
+
+## Environment variables set
+
+| Variable | Description |
+|----------|-------------|
+| `FC` | Path to the Fortran compiler |
+| `CC` | Path to the C compiler (not set for `lfortran`) |
+| `CXX` | Path to the C++ compiler (not set for `lfortran`) |
+| `FPM_FC` | Path to the Fortran compiler for fpm |
+| `FPM_CC` | Path to the C compiler for fpm (not set for `lfortran`) |
+| `FPM_CXX` | Path to the C++ compiler for fpm (not set for `lfortran`) |
+
+## Reporting
+
+Please submit an [issue](https://github.com/minhqdao/setup-fortran/issues) if you find a problem with a specific configuration or you want features to be added.
+
+## License
+
+[Apache-2.0](LICENSE)
 
 ## Privacy
 

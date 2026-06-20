@@ -1,0 +1,234 @@
+import * as core from "@actions/core";
+import * as os from "os";
+import { parseInputs } from "../src/parse_inputs";
+import { Compiler, OS, Arch, Msystem, LATEST } from "../src/types";
+
+jest.mock("@actions/core");
+jest.mock("os");
+
+describe("parseInputs", () => {
+  const mockedGetInput = core.getInput as jest.MockedFunction<
+    typeof core.getInput
+  >;
+  const mockedArch = os.arch as jest.MockedFunction<typeof os.arch>;
+  const mockedRelease = os.release as jest.MockedFunction<typeof os.release>;
+
+  let originalPlatform: string;
+  let originalEnv: NodeJS.ProcessEnv;
+
+  beforeAll(() => {
+    originalPlatform = process.platform;
+    originalEnv = { ...process.env };
+  });
+
+  afterAll(() => {
+    Object.defineProperty(process, "platform", {
+      value: originalPlatform,
+    });
+    process.env = originalEnv;
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedGetInput.mockReturnValue("");
+    mockedArch.mockReturnValue("x64");
+    mockedRelease.mockReturnValue("5.15.0");
+    delete process.env.ImageOS;
+    setPlatform("linux");
+  });
+
+  function setPlatform(platform: string) {
+    Object.defineProperty(process, "platform", {
+      value: platform,
+      configurable: true,
+    });
+  }
+
+  it("returns default values when no inputs are provided", () => {
+    const result = parseInputs();
+    expect(result).toEqual({
+      compiler: Compiler.GFortran,
+      version: LATEST,
+      os: OS.Linux,
+      osVersion: "5.15.0",
+      arch: Arch.X64,
+      msystem: Msystem.Native,
+    });
+  });
+
+  it("handles whitespace-only inputs by falling back to defaults where appropriate", () => {
+    mockedGetInput.mockReturnValue("  ");
+    const result = parseInputs();
+    expect(result).toEqual({
+      compiler: Compiler.GFortran,
+      version: LATEST,
+      os: OS.Linux,
+      osVersion: "5.15.0",
+      arch: Arch.X64,
+      msystem: Msystem.Native,
+    });
+  });
+
+  describe("compiler input", () => {
+    it("parses valid compiler names case-insensitively", () => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "compiler") return "  IFX  ";
+        return "";
+      });
+      const result = parseInputs();
+      expect(result.compiler).toBe(Compiler.IFX);
+    });
+
+    it.each([
+      [Compiler.NVFortran, "nvfortran"],
+      [Compiler.AOCC, "aocc"],
+      [Compiler.Flang, "flang"],
+      [Compiler.LFortran, "lfortran"],
+    ])("parses %s compiler", (expected, input) => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "compiler") return input;
+        return "";
+      });
+      expect(parseInputs().compiler).toBe(expected);
+    });
+
+    it("throws error for unknown compiler", () => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "compiler") return "unknown-compiler";
+        return "";
+      });
+      expect(() => parseInputs()).toThrow(
+        'Unknown compiler "unknown-compiler". Valid options: gfortran, ifx, ifort, nvfortran, aocc, flang, lfortran',
+      );
+    });
+  });
+
+  describe("version input", () => {
+    it("returns the provided version string", () => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "version") return "13.2.0";
+        return "";
+      });
+      const result = parseInputs();
+      expect(result.version).toBe("13.2.0");
+    });
+
+    it("handles year-based versions like 2022.2.1", () => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "version") return "2022.2.1";
+        return "";
+      });
+      const result = parseInputs();
+      expect(result.version).toBe("2022.2.1");
+    });
+
+    it("handles short year-based versions like 2025.2", () => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "version") return "2025.2";
+        return "";
+      });
+      const result = parseInputs();
+      expect(result.version).toBe("2025.2");
+    });
+
+    it("trims whitespace from version strings", () => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "version") return "  14.1  ";
+        return "";
+      });
+      const result = parseInputs();
+      expect(result.version).toBe("14.1");
+    });
+  });
+
+  describe("mixed inputs", () => {
+    it("correctly merges provided inputs with defaults", () => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "compiler") return "ifort";
+        // version is missing, should be default
+        return "";
+      });
+      const result = parseInputs();
+      expect(result).toMatchObject({
+        compiler: Compiler.IFort,
+        version: LATEST,
+        os: OS.Linux,
+      });
+    });
+  });
+
+  describe("msystem input", () => {
+    it("parses valid msystem names case-insensitively", () => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "msystem") return " UCRT64 ";
+        return "";
+      });
+      const result = parseInputs();
+      expect(result.msystem).toBe(Msystem.UCRT64);
+    });
+
+    it("throws error for unknown msystem", () => {
+      mockedGetInput.mockImplementation((name) => {
+        if (name === "msystem") return "msys"; // incomplete
+        return "";
+      });
+      expect(() => parseInputs()).toThrow(
+        'Unknown msystem "msys". Valid options: native, ucrt64',
+      );
+    });
+  });
+
+  describe("OS detection", () => {
+    it("detects Linux", () => {
+      setPlatform("linux");
+      expect(parseInputs().os).toBe(OS.Linux);
+    });
+
+    it("detects MacOS", () => {
+      setPlatform("darwin");
+      expect(parseInputs().os).toBe(OS.MacOS);
+    });
+
+    it("detects Windows", () => {
+      setPlatform("win32");
+      expect(parseInputs().os).toBe(OS.Windows);
+    });
+
+    it("throws for unsupported OS", () => {
+      setPlatform("freebsd");
+      expect(() => parseInputs()).toThrow(
+        'Not implemented yet: "freebsd" case',
+      );
+    });
+  });
+
+  describe("Architecture detection", () => {
+    it("detects x64", () => {
+      mockedArch.mockReturnValue("x64");
+      expect(parseInputs().arch).toBe(Arch.X64);
+    });
+
+    it("detects arm64", () => {
+      mockedArch.mockReturnValue("arm64");
+      expect(parseInputs().arch).toBe(Arch.ARM64);
+    });
+
+    it("throws for unsupported architecture", () => {
+      mockedArch.mockReturnValue("arm" as any);
+      expect(() => parseInputs()).toThrow('Not implemented yet: "arm" case');
+    });
+  });
+
+  describe("osVersion population", () => {
+    it("uses ImageOS environment variable if available", () => {
+      process.env.ImageOS = "ubuntu22";
+      expect(parseInputs().osVersion).toBe("ubuntu22");
+    });
+
+    it("falls back to os.release() if ImageOS is not set", () => {
+      delete process.env.ImageOS;
+      mockedRelease.mockReturnValue("22.04.1-Ubuntu");
+      expect(parseInputs().osVersion).toBe("22.04.1-Ubuntu");
+    });
+  });
+});

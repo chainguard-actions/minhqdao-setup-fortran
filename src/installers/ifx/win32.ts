@@ -1,0 +1,218 @@
+import * as core from "@actions/core";
+import * as exec from "@actions/exec";
+import * as cache from "@actions/cache";
+import * as tc from "@actions/tool-cache";
+import { Arch, OS, Msystem, type Target } from "../../types";
+import { resolveWindowsVersion } from "../../resolve_version";
+import * as fs from "fs";
+import * as os from "os";
+import path from "path";
+
+// Only versions with a known installer URL are listed. LATEST resolves to the
+// first entry. ARM64 is not supported: Intel oneAPI does not provide Windows
+// ARM64 packages.
+const IFX_RELEASES = [
+  {
+    version: "2026.0.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9af38d13-867b-45af-a950-0b42d9bac1ae/intel-fortran-compiler-2026.0.0.566_offline.exe",
+  },
+  {
+    version: "2025.3.3",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/11a7fdc4-e14d-42b0-a48b-9a4777932c31/intel-fortran-compiler-2025.3.3.16_offline.exe",
+  },
+  {
+    version: "2025.3.2",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/039121f2-d488-4bc1-a5bb-97528e3a4b86/intel-fortran-compiler-2025.3.2.26_offline.exe",
+  },
+  {
+    version: "2025.3.1",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/36f868e9-84b3-4b4f-90ef-ca84092cae6a/intel-oneapi-hpc-toolkit-2025.3.1.54_offline.exe",
+  },
+  {
+    version: "2025.3.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/cb54db79-1d73-4443-8274-d712fdc2d156/intel-fortran-compiler-2025.3.0.324_offline.exe",
+  },
+  {
+    version: "2025.2.1",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/0dc56e76-d2c0-4bb8-9c83-c2ee3952b855/intel-fortran-compiler-2025.2.1.11_offline.exe",
+  },
+  {
+    version: "2025.2.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/d500a63b-e481-465d-b1a3-64a6981d25f1/intel-fortran-compiler-2025.2.0.535_offline.exe",
+  },
+  {
+    version: "2025.1.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/9962ffec-17a2-4135-94e5-acc3995e0c49/intel-fortran-compiler-2025.1.0.602_offline.exe",
+  },
+  {
+    version: "2025.0.4",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1269b58a-590e-49b1-9f53-beebe171ac56/intel-fortran-compiler-2025.0.4.19_offline.exe",
+  },
+  {
+    version: "2025.0.3",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ead426f0-5403-412f-9652-106156965748/intel-fortran-compiler-2025.0.3.11_offline.exe",
+  },
+  {
+    version: "2025.0.1",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/a37c30c3-a846-4371-a85d-603e9a9eb94c/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe",
+  },
+  {
+    version: "2025.0.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/90dfd1ee-cbde-4461-89fc-3d4a4587844c/intel-fortran-compiler-2025.0.0.712_offline.exe",
+  },
+  {
+    version: "2024.2.1",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ea23d696-a77f-4a4a-8996-20d02cdbc48f/w_fortran-compiler_p_2024.2.1.81_offline.exe",
+  },
+  {
+    version: "2024.2.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7feb5647-59dd-420d-8753-345d31e177dc/w_fortran-compiler_p_2024.2.0.424_offline.exe",
+  },
+  {
+    version: "2024.1.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/c95a3b26-fc45-496c-833b-df08b10297b9/w_HPCKit_p_2024.1.0.561_offline.exe",
+  },
+  {
+    version: "2024.0.2",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/3a64aab4-3c35-40ba-bc9c-f80f136a8005/w_fortran-compiler_p_2024.0.2.27_offline.exe",
+  },
+  {
+    version: "2024.0.1",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7a6db8a1-a8b9-4043-8e8e-ca54b56c34e4/w_HPCKit_p_2024.0.1.35_offline.exe",
+  },
+  {
+    version: "2023.2.1",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/1720594b-b12c-4aca-b7fb-a7d317bac5cb/w_fortran-compiler_p_2023.2.1.7_offline.exe",
+  },
+  {
+    version: "2023.2.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/438527fc-7140-422c-a851-389f2791816b/w_HPCKit_p_2023.2.0.49441_offline.exe",
+  },
+  {
+    version: "2023.1.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/2a13d966-fcc5-4a66-9fcc-50603820e0c9/w_HPCKit_p_2023.1.0.46357_offline.exe",
+  },
+  {
+    version: "2022.3.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/irc_nas/18857/w_HPCKit_p_2022.3.0.9564_offline.exe",
+  },
+  {
+    version: "2022.2.0",
+    url: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/18680/w_HPCKit_p_2022.2.0.173_offline.exe",
+  },
+] as const;
+
+const SUPPORTED_VERSIONS = {
+  [Arch.X64]: {
+    [Msystem.Native]: IFX_RELEASES.map((r) => r.version),
+    [Msystem.UCRT64]: undefined,
+    [Msystem.Clang64]: undefined,
+  },
+  [Arch.ARM64]: {
+    [Msystem.Native]: undefined,
+    [Msystem.UCRT64]: undefined,
+    [Msystem.Clang64]: undefined,
+  },
+} satisfies Record<Arch, Record<Msystem, readonly string[] | undefined>>;
+
+const ONEAPI_ROOT = "C:\\Program Files (x86)\\Intel\\oneAPI";
+const SETVARS_BAT = `${ONEAPI_ROOT}\\setvars.bat`;
+
+export async function installWin32(target: Target): Promise<string> {
+  const version = resolveWindowsVersion(target, SUPPORTED_VERSIONS);
+
+  const release = IFX_RELEASES.find((r) => r.version === version);
+  if (!release) {
+    throw new Error(
+      `No installer URL found for ifx ${version} on Windows. ` +
+        `This is a bug — please open an issue.`,
+    );
+  }
+
+  core.info(`Installing ifx ${version} on Windows (${target.arch})...`);
+
+  const cacheKey = `ifx-win32-${target.arch}-${version}`;
+  const cachePaths = [ONEAPI_ROOT];
+
+  const cacheHit = await cache.restoreCache(cachePaths, cacheKey);
+  if (cacheHit) {
+    core.info(`Restored ifx installation from cache (${cacheHit}).`);
+  } else {
+    core.info(`Downloading installer...`);
+    const installerPath = await tc.downloadTool(
+      release.url,
+      path.join(process.env.RUNNER_TEMP ?? "C:\\Temp", `ifx-${version}.exe`),
+    );
+
+    core.info("Running silent install...");
+    await exec.exec(`"${installerPath}"`, [
+      "-s",
+      "-a",
+      "--silent",
+      "--eula",
+      "accept",
+      "-p=NEED_VS2019_INTEGRATION=0",
+      "-p=NEED_VS2022_INTEGRATION=0",
+    ]);
+
+    core.info("Saving installation to cache...");
+    await cache.saveCache(cachePaths, cacheKey);
+  }
+
+  const batFile = path.join(os.tmpdir(), "setvars_and_dump.bat");
+  fs.writeFileSync(
+    batFile,
+    `@echo off\r\ncall "${SETVARS_BAT}" --force\r\nset\r\n`,
+  );
+
+  let envOutput = "";
+  await exec.exec("cmd", ["/C", batFile], {
+    listeners: {
+      stdout: (data: Buffer) => {
+        envOutput += data.toString();
+      },
+    },
+  });
+
+  for (const line of envOutput.split("\n")) {
+    const eqIdx = line.indexOf("=");
+    if (eqIdx === -1) continue;
+    const key = line.substring(0, eqIdx).trim();
+    const val = line.substring(eqIdx + 1).trimEnd();
+    if (
+      /^(PATH|LIB|.*INTEL.*|.*ONEAPI.*|.*MKL.*|MKLROOT|CMPLR_ROOT)$/i.test(key)
+    ) {
+      core.exportVariable(key, val);
+    }
+  }
+
+  core.exportVariable("FC", "ifx");
+  core.exportVariable("CC", "icx");
+  core.exportVariable("CXX", "icpx");
+  core.exportVariable("FPM_FC", "ifx");
+  core.exportVariable("FPM_CC", "icx");
+  core.exportVariable("FPM_CXX", "icpx");
+
+  const resolvedVersion = await resolveInstalledVersion();
+  core.info(`ifx ${resolvedVersion} installed successfully.`);
+  return resolvedVersion;
+}
+
+async function resolveInstalledVersion(): Promise<string> {
+  const versionCommand =
+    process.platform === OS.Windows ? "/what" : "--version";
+
+  let output = "";
+  await exec.exec("ifx", [versionCommand], {
+    ignoreReturnCode: true,
+    listeners: {
+      stdout: (data: Buffer) => {
+        output += data.toString();
+      },
+      stderr: (data: Buffer) => {
+        output += data.toString();
+      },
+    },
+  });
+  return output.trim();
+}

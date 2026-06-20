@@ -1,0 +1,40 @@
+name: Test default inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ImageOS: ubuntu24
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          compiler: gfortran
+          version: "12"
+      - name: Assert version output is non-empty
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Assert gfortran is available in PATH (default compiler)
+        run: |
+          if ! command -v gfortran &>/dev/null; then
+            echo "FAIL: gfortran not found in PATH (expected default compiler)"
+            exit 1
+          fi
+          echo "PASS: gfortran found at $(command -v gfortran)"
+      - name: Assert FORTRAN_COMPILER env var is set
+        run: |
+          echo "FORTRAN_COMPILER: $FORTRAN_COMPILER"
+          if [ -z "$FORTRAN_COMPILER" ]; then
+            echo "FAIL: FORTRAN_COMPILER env var not set"
+            exit 1
+          fi
+          echo "PASS: FORTRAN_COMPILER=$FORTRAN_COMPILER"
