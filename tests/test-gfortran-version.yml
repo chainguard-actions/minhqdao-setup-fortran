@@ -1,0 +1,44 @@
+name: Test gfortran with explicit version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      ImageOS: ubuntu22
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup
+        uses: .
+        with:
+          compiler: gfortran
+          version: "12"
+      - name: Assert version output is non-empty
+        env:
+          VERSION: ${{ steps.setup.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Assert gfortran is available on PATH
+        run: |
+          if ! command -v gfortran &>/dev/null; then
+            echo "FAIL: gfortran not found on PATH"
+            exit 1
+          fi
+          echo "PASS: gfortran found at $(command -v gfortran)"
+      - name: Assert gfortran version matches requested major version
+        env:
+          VERSION: ${{ steps.setup.outputs.version }}
+        run: |
+          echo "installed version: $VERSION"
+          major=$(gfortran --version | head -1 | grep -oP '\d+\.\d+\.\d+' | head -1 | cut -d. -f1)
+          echo "major version: $major"
+          if [ "$major" != "12" ]; then
+            echo "FAIL: expected major version 12, got $major"
+            exit 1
+          fi
+          echo "PASS"
