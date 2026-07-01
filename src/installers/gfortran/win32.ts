@@ -1,0 +1,158 @@
+import * as core from "@actions/core";
+import * as exec from "@actions/exec";
+import * as path from "path";
+import * as tc from "@actions/tool-cache";
+import {
+  Arch,
+  LATEST,
+  Msystem,
+  type InstallationResult,
+  type Inputs,
+} from "../../types";
+import { resolveWindowsVersion } from "../../resolve_version";
+import { setupMSYS2 } from "../../setup_msys2";
+
+// Make sure the versions are in descending order. The first one will be
+// used as the default if no version was specified by the user.
+const GCC_RELEASES = [
+  {
+    version: "16",
+    url: "https://github.com/brechtsanders/winlibs_mingw/releases/download/16.1.0posix-14.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-16.1.0-mingw-w64ucrt-14.0.0-r1.zip",
+  },
+  {
+    version: "15",
+    url: "https://github.com/brechtsanders/winlibs_mingw/releases/download/15.2.0posix-14.0.0-ucrt-r7/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64ucrt-14.0.0-r7.zip",
+  },
+  {
+    version: "14",
+    url: "https://github.com/brechtsanders/winlibs_mingw/releases/download/14.3.0posix-12.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-14.3.0-mingw-w64ucrt-12.0.0-r1.zip",
+  },
+  {
+    version: "13",
+    url: "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.3.0posix-11.0.1-ucrt-r1/winlibs-x86_64-posix-seh-gcc-13.3.0-mingw-w64ucrt-11.0.1-r1.zip",
+  },
+  {
+    version: "12",
+    url: "https://github.com/brechtsanders/winlibs_mingw/releases/download/12.4.0posix-12.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-12.4.0-mingw-w64ucrt-12.0.0-r1.zip",
+  },
+  {
+    version: "11",
+    url: "https://github.com/brechtsanders/winlibs_mingw/releases/download/11.5.0posix-12.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-11.5.0-mingw-w64ucrt-12.0.0-r1.zip",
+  },
+] as const;
+
+const SUPPORTED_VERSIONS = {
+  [Arch.X64]: {
+    [Msystem.Native]: GCC_RELEASES.map((r) => r.version),
+    [Msystem.UCRT64]: [LATEST],
+    [Msystem.Clang64]: undefined,
+  },
+  [Arch.ARM64]: {
+    [Msystem.Native]: undefined,
+    [Msystem.UCRT64]: undefined,
+    [Msystem.Clang64]: undefined,
+  },
+} as const satisfies Record<
+  Arch,
+  Record<Msystem, readonly string[] | undefined>
+>;
+
+export async function installWin32(
+  inputs: Inputs,
+): Promise<InstallationResult> {
+  const version = resolveWindowsVersion(inputs, SUPPORTED_VERSIONS);
+
+  switch (inputs.msystem) {
+    case Msystem.Native:
+      return await installNative(inputs, version);
+    case Msystem.UCRT64:
+      return await installMSYS2(inputs);
+    case Msystem.Clang64:
+      throw new Error(
+        `Clang/LLVM's clang-cl does not include gfortran and is not supported by this installer. ` +
+          `Please use the "native" msystem to install the latest gfortran via conda-forge, or ` +
+          `use MSYS2 with msystem "ucrt64" for a rolling-release version of gfortran.`,
+      );
+  }
+}
+
+async function installNative(
+  inputs: Inputs,
+  version: string,
+): Promise<InstallationResult> {
+  const release = GCC_RELEASES.find((r) => r.version === version);
+  if (!release) {
+    throw new Error(`Unsupported GFortran version: ${version}`);
+  }
+  const downloadUrl = release.url;
+
+  let toolRoot = tc.find(`gfortran-${inputs.msystem}`, version, inputs.arch);
+
+  if (!toolRoot) {
+    core.info(`Downloading GFortran ${version} from ${downloadUrl}`);
+    const downloadPath = await tc.downloadTool(downloadUrl);
+
+    core.info(`Extracting GFortran ${version} from ${downloadPath}...`);
+    const extractPath = await tc.extractZip(downloadPath);
+
+    const actualToolDir = path.join(extractPath, "mingw64");
+
+    core.info(`Caching GFortran ${version} in ${actualToolDir}...`);
+    toolRoot = await tc.cacheDir(
+      actualToolDir,
+      `gfortran-${inputs.msystem}`,
+      version,
+      inputs.arch,
+    );
+  }
+
+  const binPath = path.join(toolRoot, "bin");
+  core.addPath(binPath);
+
+  const gfortranPath = path.join(binPath, "gfortran.exe");
+  const gccPath = path.join(binPath, "gcc.exe");
+  const gxxPath = path.join(binPath, "g++.exe");
+
+  const resolvedVersion = await resolveInstalledVersion();
+  const result = {
+    version: resolvedVersion,
+    fc: gfortranPath,
+    cc: gccPath,
+    cxx: gxxPath,
+  };
+  return result;
+}
+
+async function installMSYS2(inputs: Inputs): Promise<InstallationResult> {
+  await setupMSYS2(inputs.msystem, ["gcc-fortran"]);
+
+  const msysBin = path.join("C:\\msys64", inputs.msystem, "bin");
+  const gfortranPath = path.join(msysBin, "gfortran.exe");
+  const gccPath = path.join(msysBin, "gcc.exe");
+  const gxxPath = path.join(msysBin, "g++.exe");
+
+  const resolvedVersion = await resolveInstalledVersion();
+  const result = {
+    version: resolvedVersion,
+    fc: gfortranPath,
+    cc: gccPath,
+    cxx: gxxPath,
+  };
+  return result;
+}
+
+async function resolveInstalledVersion(): Promise<string> {
+  let stdout = "";
+  const tool = "gfortran";
+
+  try {
+    await exec.exec(tool, ["-dumpversion"], {
+      silent: true,
+      listeners: { stdout: (data) => (stdout += data.toString()) },
+    });
+  } catch (err) {
+    throw new Error(`Failed to verify ${tool} installation`, { cause: err });
+  }
+
+  return stdout.trim();
+}

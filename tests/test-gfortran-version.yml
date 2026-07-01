@@ -1,0 +1,58 @@
+name: Test gfortran with specific version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: setup-fortran
+        uses: .
+        with:
+          compiler: gfortran
+          version: "13"
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.setup-fortran.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Assert fc output is set
+        env:
+          FC: ${{ steps.setup-fortran.outputs.fc }}
+        run: |
+          echo "fc: $FC"
+          if [ -z "$FC" ]; then
+            echo "FAIL: expected fc output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: fc=$FC"
+      - name: Assert gfortran version matches requested
+        env:
+          FC: ${{ steps.setup-fortran.outputs.fc }}
+          VERSION: ${{ steps.setup-fortran.outputs.version }}
+        run: |
+          echo "Checking version of $FC"
+          "$FC" --version
+          # The version output should contain "13"
+          if ! echo "$VERSION" | grep -q "13"; then
+            echo "FAIL: expected version to contain '13', got '$VERSION'"
+            exit 1
+          fi
+          echo "PASS: version contains '13'"
+      - name: Assert gfortran can compile a simple program
+        env:
+          FC: ${{ steps.setup-fortran.outputs.fc }}
+        run: |
+          cat > /tmp/hello_v.f90 << 'EOF'
+          program hello
+            print *, "Hello from versioned gfortran!"
+          end program hello
+          EOF
+          "$FC" /tmp/hello_v.f90 -o /tmp/hello_v
+          /tmp/hello_v
+          echo "PASS: versioned gfortran compiled and ran successfully"
