@@ -1,0 +1,70 @@
+name: aocc
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+    build:
+        name: ci
+        if: github.actor != 'dependabot[bot]'
+        uses: ./.github/workflows/ci.yml
+
+    integration-tests:
+        name: ${{ matrix.toolchain.version }} ${{ matrix.image }} ${{
+            matrix.toolchain.msystem }}
+        if: github.actor != 'dependabot[bot]'
+        runs-on: ${{ matrix.image }}
+        needs: [build]
+        strategy:
+            fail-fast: false
+            matrix:
+                image: [ubuntu-24.04, ubuntu-22.04]
+
+                toolchain:
+                    - { compiler: aocc, version: "5.2" }
+                    - { compiler: aocc, version: "5.1" }
+                    - { compiler: aocc, version: "5.0" }
+                    - { compiler: aocc, version: "4.2" }
+                    - { compiler: aocc, version: "4.1" }
+
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: Restore dist-tests
+              uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4
+              with:
+                  timeout_minutes: 5
+                  max_attempts: 3
+                  retry_wait_seconds: 10
+                  command: gh run download ${{ github.run_id }} --name generated-dist-tests --dir dist-tests
+              env:
+                  GH_TOKEN: ${{ github.token }}
+
+            - name: Install ${{ matrix.toolchain.compiler }} ${{ matrix.toolchain.version }}
+              id: setup
+              uses: ./
+              with:
+                  compiler: ${{ matrix.toolchain.compiler }}
+                  version: ${{ matrix.toolchain.version }}
+
+            - name: Verify installation
+              env:
+                  OUTPUT_VERSION: ${{ steps.setup.outputs.version }}
+                  OUTPUT_FC: ${{ steps.setup.outputs.fc }}
+                  OUTPUT_CC: ${{ steps.setup.outputs.cc }}
+                  OUTPUT_CXX: ${{ steps.setup.outputs.cxx }}
+              run: |
+                  npm run verify-installation
+                  echo "Fortran Compiler Setup:"
+                  echo "  Version: $OUTPUT_VERSION"
+                  echo "  FC:      $OUTPUT_FC"
+                  echo "  CC:      $OUTPUT_CC"
+                  echo "  CXX:     $OUTPUT_CXX"
+
+            - name: Run Integration Tests
+              run: npm run integration-test
