@@ -1,0 +1,60 @@
+name: Test gfortran with explicit version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          compiler: gfortran
+          version: "13"
+      - name: Assert version output matches requested
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          # Version should contain "13"
+          if ! echo "$VERSION" | grep -q "13"; then
+            echo "FAIL: expected version to contain '13', got '$VERSION'"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Assert fc output is set
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "fc: $FC"
+          if [ -z "$FC" ]; then
+            echo "FAIL: fc output is empty"
+            exit 1
+          fi
+          echo "PASS: fc=$FC"
+      - name: Assert gfortran-13 is executable
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "Testing that FC=$FC is executable"
+          if ! command -v "$FC" > /dev/null 2>&1; then
+            echo "FAIL: $FC is not found on PATH"
+            exit 1
+          fi
+          echo "PASS: $FC is available"
+      - name: Assert gfortran can compile a simple program
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          cat > /tmp/hello.f90 << 'EOF'
+          program hello
+            print *, "Hello, Fortran!"
+          end program hello
+          EOF
+          "$FC" /tmp/hello.f90 -o /tmp/hello
+          /tmp/hello
+          echo "PASS: gfortran compiled and ran successfully"

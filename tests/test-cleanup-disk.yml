@@ -1,0 +1,55 @@
+name: Test gfortran setup with cleanup-disk enabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          compiler: gfortran
+          cleanup-disk: 'true'
+      - name: Assert fc output is set after cleanup-disk
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "fc: $FC"
+          if [ -z "$FC" ]; then
+            echo "FAIL: fc output is empty"
+            exit 1
+          fi
+          echo "PASS: fc=$FC"
+      - name: Assert version output is set after cleanup-disk
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Assert gfortran is executable after cleanup-disk
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "Testing that FC=$FC is executable"
+          if ! command -v "$FC" > /dev/null 2>&1; then
+            echo "FAIL: $FC is not found on PATH"
+            exit 1
+          fi
+          echo "PASS: $FC is available"
+      - name: Assert gfortran can compile after cleanup-disk
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          cat > /tmp/hello_cleanup.f90 << 'EOF'
+          program hello
+            print *, "Hello after cleanup!"
+          end program hello
+          EOF
+          "$FC" /tmp/hello_cleanup.f90 -o /tmp/hello_cleanup
+          /tmp/hello_cleanup
+          echo "PASS: gfortran compiled and ran successfully after cleanup-disk"
