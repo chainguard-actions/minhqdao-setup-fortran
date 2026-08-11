@@ -1,0 +1,48 @@
+name: Test gfortran setup with cleanup-disk enabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: setup
+        uses: .
+        with:
+          compiler: gfortran
+          cleanup-disk: "true"
+
+      - name: Assert version output is set after cleanup-disk
+        env:
+          VERSION: ${{ steps.setup.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+
+      - name: Assert fc output is set after cleanup-disk
+        env:
+          FC: ${{ steps.setup.outputs.fc }}
+        run: |
+          echo "fc: $FC"
+          if [ -z "$FC" ]; then
+            echo "FAIL: expected fc output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: fc=$FC"
+
+      - name: Assert gfortran is executable after cleanup-disk
+        env:
+          FC: ${{ steps.setup.outputs.fc }}
+        run: |
+          echo "Checking that gfortran is available at: $FC"
+          if ! command -v "$FC" > /dev/null 2>&1; then
+            echo "FAIL: gfortran command '$FC' not found in PATH"
+            exit 1
+          fi
+          echo "PASS: gfortran is available"
+          "$FC" --version
