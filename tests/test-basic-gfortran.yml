@@ -1,0 +1,68 @@
+name: Test basic gfortran setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          compiler: gfortran
+      - name: Assert outputs are set
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+          FC: ${{ steps.action.outputs.fc }}
+          CC: ${{ steps.action.outputs.cc }}
+          CXX: ${{ steps.action.outputs.cxx }}
+        run: |
+          echo "version: $VERSION"
+          echo "fc: $FC"
+          echo "cc: $CC"
+          echo "cxx: $CXX"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$FC" ]; then
+            echo "FAIL: fc output is empty"
+            exit 1
+          fi
+          if [ -z "$CC" ]; then
+            echo "FAIL: cc output is empty"
+            exit 1
+          fi
+          if [ -z "$CXX" ]; then
+            echo "FAIL: cxx output is empty"
+            exit 1
+          fi
+          echo "PASS: all outputs are set"
+      - name: Assert gfortran is executable
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "Testing FC: $FC"
+          if ! command -v "$FC" > /dev/null 2>&1; then
+            echo "FAIL: Fortran compiler '$FC' not found in PATH"
+            exit 1
+          fi
+          echo "PASS: Fortran compiler is available"
+      - name: Assert gfortran can compile a simple program
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          cat > /tmp/hello.f90 << 'EOF'
+          program hello
+            print *, "Hello, Fortran!"
+          end program hello
+          EOF
+          "$FC" /tmp/hello.f90 -o /tmp/hello
+          OUTPUT=$(/tmp/hello)
+          echo "Output: $OUTPUT"
+          if echo "$OUTPUT" | grep -q "Hello, Fortran!"; then
+            echo "PASS: Fortran program compiled and ran successfully"
+          else
+            echo "FAIL: Fortran program output unexpected: $OUTPUT"
+            exit 1
+          fi

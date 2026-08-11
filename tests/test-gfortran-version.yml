@@ -1,0 +1,46 @@
+name: Test gfortran with specific version
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          compiler: gfortran
+          version: "13"
+      - name: Assert version output matches requested version
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "version: $VERSION"
+          echo "fc: $FC"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$FC" ]; then
+            echo "FAIL: fc output is empty"
+            exit 1
+          fi
+          echo "PASS: outputs are set"
+      - name: Assert gfortran version 13 is installed
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "FC: $FC"
+          if ! command -v "$FC" > /dev/null 2>&1; then
+            echo "FAIL: Fortran compiler '$FC' not found in PATH"
+            exit 1
+          fi
+          VERSION_OUTPUT=$("$FC" --version 2>&1 | head -1)
+          echo "Version output: $VERSION_OUTPUT"
+          if echo "$VERSION_OUTPUT" | grep -q "13"; then
+            echo "PASS: gfortran version 13 is installed"
+          else
+            echo "FAIL: expected version 13 in output: $VERSION_OUTPUT"
+            exit 1
+          fi

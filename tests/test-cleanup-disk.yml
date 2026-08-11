@@ -1,0 +1,66 @@
+name: Test gfortran setup with cleanup-disk enabled
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          compiler: gfortran
+          cleanup-disk: 'true'
+      - name: Assert outputs are set after cleanup-disk
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+          FC: ${{ steps.action.outputs.fc }}
+          CC: ${{ steps.action.outputs.cc }}
+          CXX: ${{ steps.action.outputs.cxx }}
+        run: |
+          echo "version: $VERSION"
+          echo "fc: $FC"
+          echo "cc: $CC"
+          echo "cxx: $CXX"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: version output is empty"
+            exit 1
+          fi
+          if [ -z "$FC" ]; then
+            echo "FAIL: fc output is empty"
+            exit 1
+          fi
+          if [ -z "$CC" ]; then
+            echo "FAIL: cc output is empty"
+            exit 1
+          fi
+          if [ -z "$CXX" ]; then
+            echo "FAIL: cxx output is empty"
+            exit 1
+          fi
+          echo "PASS: all outputs are set after cleanup-disk"
+      - name: Assert gfortran is still functional after disk cleanup
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "FC: $FC"
+          if ! command -v "$FC" > /dev/null 2>&1; then
+            echo "FAIL: Fortran compiler '$FC' not found in PATH after disk cleanup"
+            exit 1
+          fi
+          cat > /tmp/test_cleanup.f90 << 'EOF'
+          program test_cleanup
+            integer :: x
+            x = 42
+            print *, "Value:", x
+          end program test_cleanup
+          EOF
+          "$FC" /tmp/test_cleanup.f90 -o /tmp/test_cleanup
+          OUTPUT=$(/tmp/test_cleanup)
+          echo "Output: $OUTPUT"
+          if echo "$OUTPUT" | grep -q "42"; then
+            echo "PASS: Fortran compiler works after disk cleanup"
+          else
+            echo "FAIL: Unexpected output: $OUTPUT"
+            exit 1
+          fi
