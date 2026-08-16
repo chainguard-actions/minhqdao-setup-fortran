@@ -20,6 +20,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v1.9.0 | [`v1.9.0`](https://github.com/chainguard-actions/minhqdao-setup-fortran/tree/v1.9.0) | [`00f73e5`](https://github.com/minhqdao/setup-fortran/commit/00f73e57a797ff5f5e1f71fe6e36d0a9b3ef6b24) |
 | v1.9.1 | [`v1.9.1`](https://github.com/chainguard-actions/minhqdao-setup-fortran/tree/v1.9.1) | [`656a9e5`](https://github.com/minhqdao/setup-fortran/commit/656a9e558b9d84fd26d10d49dc097fa6dfcb65d1) |
 | v1.9.2 | [`v1.9.2`](https://github.com/chainguard-actions/minhqdao-setup-fortran/tree/v1.9.2) | [`fc64259`](https://github.com/minhqdao/setup-fortran/commit/fc64259d91ab0861493db783b2858ab50654499b) |
+| v1.9.3 | [`v1.9.3`](https://github.com/chainguard-actions/minhqdao-setup-fortran/tree/v1.9.3) | [`b168e0e`](https://github.com/minhqdao/setup-fortran/commit/b168e0e0806806bd6238443a4b2e64747c53fcd5) |
 
 ## Privacy
 
