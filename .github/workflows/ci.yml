@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  validation:
+    uses: ./.github/workflows/validation.yml
+
+  aocc:
+    needs: [validation]
+    uses: ./.github/workflows/ci-aocc.yml
+
+  armflang:
+    needs: [validation]
+    uses: ./.github/workflows/ci-armflang.yml
+
+  gfortran:
+    needs: [validation]
+    uses: ./.github/workflows/ci-gfortran.yml
+
+  flang:
+    needs: [validation]
+    uses: ./.github/workflows/ci-flang.yml
+
+  ifort:
+    needs: [validation]
+    uses: ./.github/workflows/ci-ifort.yml
+
+  ifx:
+    needs: [validation]
+    uses: ./.github/workflows/ci-ifx.yml
+
+  lfortran:
+    needs: [validation]
+    uses: ./.github/workflows/ci-lfortran.yml
+
+  nvfortran:
+    needs: [validation]
+    uses: ./.github/workflows/ci-nvfortran.yml
