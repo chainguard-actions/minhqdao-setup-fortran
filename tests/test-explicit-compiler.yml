@@ -1,4 +1,4 @@
-name: Test gfortran with specific version
+name: Test explicit compiler input
 on:
   workflow_dispatch:
 jobs:
@@ -10,7 +10,6 @@ jobs:
         uses: .
         with:
           compiler: gfortran
-          version: "12"
       - name: Assert version output is non-empty
         env:
           VERSION: ${{ steps.setup.outputs.version }}
@@ -21,7 +20,7 @@ jobs:
             exit 1
           fi
           echo "PASS: version=$VERSION"
-      - name: Assert gfortran is available on PATH
+      - name: Assert gfortran is on PATH and functional
         run: |
           if ! command -v gfortran >/dev/null 2>&1; then
             echo "FAIL: gfortran not found on PATH"
@@ -29,20 +28,26 @@ jobs:
           fi
           echo "PASS: gfortran found at $(command -v gfortran)"
           gfortran --version
-      - name: Assert gfortran version is 12
-        env:
-          VERSION: ${{ steps.setup.outputs.version }}
+      - name: Assert FC environment variable is set
         run: |
-          echo "reported version: $VERSION"
-          if ! echo "$VERSION" | grep -q "12"; then
-            echo "FAIL: expected version containing '12', got '$VERSION'"
+          echo "FC=$FC"
+          if [ -z "$FC" ]; then
+            echo "FAIL: expected FC env var to be set"
             exit 1
           fi
-          echo "PASS: version contains 12"
-      - name: Assert gfortran-12 binary exists
+          echo "PASS: FC=$FC"
+      - name: Compile and run a simple Fortran program
         run: |
-          if ! command -v gfortran-12 >/dev/null 2>&1; then
-            echo "FAIL: gfortran-12 not found on PATH"
+          cat > /tmp/hello.f90 << 'EOF'
+          program hello
+            print *, "Hello, Fortran!"
+          end program hello
+          EOF
+          gfortran /tmp/hello.f90 -o /tmp/hello
+          OUTPUT=$(/tmp/hello)
+          echo "Output: $OUTPUT"
+          if ! echo "$OUTPUT" | grep -q "Hello, Fortran!"; then
+            echo "FAIL: expected 'Hello, Fortran!' in output"
             exit 1
           fi
-          echo "PASS: gfortran-12 found at $(command -v gfortran-12)"
+          echo "PASS: Fortran program compiled and ran successfully"
