@@ -4,8 +4,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    env:
-      ImageOS: ubuntu24
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - id: action
@@ -15,27 +13,28 @@ jobs:
           version: "13"
       - name: Assert version output is non-empty
         env:
-          VERSION: ${{ steps.action.outputs.version }}
+          ACTUAL: ${{ steps.action.outputs.version }}
         run: |
-          echo "version: $VERSION"
-          if [ -z "$VERSION" ]; then
+          echo "actual version: $ACTUAL"
+          if [ -z "$ACTUAL" ]; then
             echo "FAIL: expected version output to be non-empty"
             exit 1
           fi
-          echo "PASS: version=$VERSION"
-      - name: Assert gfortran is available in PATH
+          echo "PASS: version output is '$ACTUAL'"
+      - name: Assert gfortran is on PATH
         run: |
           if ! command -v gfortran &>/dev/null; then
-            echo "FAIL: gfortran not found in PATH"
+            echo "FAIL: gfortran not found on PATH"
             exit 1
           fi
           echo "PASS: gfortran found at $(command -v gfortran)"
-      - name: Assert gfortran version matches requested major version
+      - name: Assert gfortran version contains 13
         run: |
-          actual_version=$(gfortran --version | head -1)
-          echo "gfortran version string: $actual_version"
-          if [[ "$actual_version" != *"13"* ]]; then
-            echo "FAIL: expected version string to contain '13'"
+          ver=$(gfortran --version | head -1)
+          echo "gfortran version: $ver"
+          if echo "$ver" | grep -q "13"; then
+            echo "PASS: gfortran version 13 confirmed"
+          else
+            echo "FAIL: expected version 13 but got: $ver"
             exit 1
           fi
-          echo "PASS: version string contains '13'"
