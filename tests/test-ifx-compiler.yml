@@ -1,4 +1,4 @@
-name: Test basic gfortran setup (default)
+name: Test ifx (Intel Fortran) compiler setup
 on:
   workflow_dispatch:
 jobs:
@@ -9,7 +9,7 @@ jobs:
       - id: action
         uses: .
         with:
-          compiler: gfortran
+          compiler: ifx
       - name: Assert version output is non-empty
         env:
           VERSION: ${{ steps.action.outputs.version }}
@@ -20,25 +20,25 @@ jobs:
             exit 1
           fi
           echo "PASS: version=$VERSION"
-      - name: Assert gfortran is on PATH
+      - name: Assert ifx is on PATH
         run: |
-          if ! command -v gfortran &>/dev/null; then
-            echo "FAIL: gfortran not found on PATH"
+          if ! command -v ifx &>/dev/null; then
+            echo "FAIL: ifx not found on PATH"
             exit 1
           fi
-          echo "PASS: gfortran found at $(command -v gfortran)"
-      - name: Assert gfortran can compile a simple program
+          echo "PASS: ifx found at $(command -v ifx)"
+      - name: Assert ifx can compile a simple program
         run: |
-          cat > /tmp/hello.f90 <<'EOF'
+          cat > /tmp/hello_ifx.f90 <<'EOF'
           program hello
-            print *, "Hello, Fortran!"
+            print *, "Hello from ifx!"
           end program hello
           EOF
-          gfortran /tmp/hello.f90 -o /tmp/hello
-          OUTPUT=$(/tmp/hello)
+          ifx /tmp/hello_ifx.f90 -o /tmp/hello_ifx
+          OUTPUT=$(/tmp/hello_ifx)
           echo "output: $OUTPUT"
-          if ! echo "$OUTPUT" | grep -q "Hello, Fortran!"; then
+          if ! echo "$OUTPUT" | grep -q "Hello from ifx!"; then
             echo "FAIL: unexpected output from compiled Fortran program"
             exit 1
           fi
-          echo "PASS: Fortran program compiled and ran successfully"
+          echo "PASS: ifx compiled and ran successfully"

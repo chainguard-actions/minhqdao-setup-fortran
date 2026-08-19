@@ -1,4 +1,4 @@
-name: Test basic gfortran setup (default)
+name: Test gfortran with specific version
 on:
   workflow_dispatch:
 jobs:
@@ -10,6 +10,7 @@ jobs:
         uses: .
         with:
           compiler: gfortran
+          version: "13"
       - name: Assert version output is non-empty
         env:
           VERSION: ${{ steps.action.outputs.version }}
@@ -27,18 +28,12 @@ jobs:
             exit 1
           fi
           echo "PASS: gfortran found at $(command -v gfortran)"
-      - name: Assert gfortran can compile a simple program
+      - name: Assert gfortran version matches requested
         run: |
-          cat > /tmp/hello.f90 <<'EOF'
-          program hello
-            print *, "Hello, Fortran!"
-          end program hello
-          EOF
-          gfortran /tmp/hello.f90 -o /tmp/hello
-          OUTPUT=$(/tmp/hello)
-          echo "output: $OUTPUT"
-          if ! echo "$OUTPUT" | grep -q "Hello, Fortran!"; then
-            echo "FAIL: unexpected output from compiled Fortran program"
+          ACTUAL_VERSION=$(gfortran --version | head -1)
+          echo "gfortran version: $ACTUAL_VERSION"
+          if ! echo "$ACTUAL_VERSION" | grep -q "13"; then
+            echo "FAIL: expected gfortran version 13 but got: $ACTUAL_VERSION"
             exit 1
           fi
-          echo "PASS: Fortran program compiled and ran successfully"
+          echo "PASS: gfortran version 13 confirmed"

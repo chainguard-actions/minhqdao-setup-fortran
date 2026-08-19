@@ -1,0 +1,29 @@
+name: Test lfortran compiler setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          compiler: lfortran
+      - name: Assert version output is non-empty
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected non-empty version output"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Assert lfortran is on PATH
+        run: |
+          if ! command -v lfortran &>/dev/null; then
+            echo "FAIL: lfortran not found on PATH"
+            exit 1
+          fi
+          echo "PASS: lfortran found at $(command -v lfortran)"
