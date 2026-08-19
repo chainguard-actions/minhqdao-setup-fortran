@@ -1,4 +1,4 @@
-name: Test basic gfortran setup (default)
+name: Test gfortran with specific version
 on:
   workflow_dispatch:
 jobs:
@@ -14,13 +14,18 @@ jobs:
         uses: .
         with:
           compiler: gfortran
-      - name: Assert version output is non-empty
+          version: "13"
+      - name: Assert version output matches requested version
         env:
           ACTUAL: ${{ steps.action.outputs.version }}
         run: |
           echo "actual version: $ACTUAL"
           if [ -z "$ACTUAL" ]; then
             echo "FAIL: expected a non-empty version output"
+            exit 1
+          fi
+          if ! echo "$ACTUAL" | grep -q "13"; then
+            echo "FAIL: expected version containing '13', got '$ACTUAL'"
             exit 1
           fi
           echo "PASS: version=$ACTUAL"
