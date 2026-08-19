@@ -1,0 +1,66 @@
+name: Test gfortran FC environment variables
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Install Node.js 24
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+          node --version
+      - id: action
+        uses: .
+        with:
+          compiler: gfortran
+      - name: Assert FC environment variable is set
+        run: |
+          echo "FC: $FC"
+          if [ -z "$FC" ]; then
+            echo "FAIL: FC env var not set"
+            exit 1
+          fi
+          if echo "$FC" | grep -q "gfortran"; then
+            echo "PASS: FC=$FC"
+          else
+            echo "FAIL: expected FC to contain 'gfortran', got: $FC"
+            exit 1
+          fi
+      - name: Assert F77 environment variable is set
+        run: |
+          echo "F77: $F77"
+          if [ -z "$F77" ]; then
+            echo "FAIL: F77 env var not set"
+            exit 1
+          fi
+          if echo "$F77" | grep -q "gfortran"; then
+            echo "PASS: F77=$F77"
+          else
+            echo "FAIL: expected F77 to contain 'gfortran', got: $F77"
+            exit 1
+          fi
+      - name: Assert F90 environment variable is set
+        run: |
+          echo "F90: $F90"
+          if [ -z "$F90" ]; then
+            echo "FAIL: F90 env var not set"
+            exit 1
+          fi
+          if echo "$F90" | grep -q "gfortran"; then
+            echo "PASS: F90=$F90"
+          else
+            echo "FAIL: expected F90 to contain 'gfortran', got: $F90"
+            exit 1
+          fi
+      - name: Assert version output is non-empty
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected non-empty version output"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
