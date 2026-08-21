@@ -1,0 +1,39 @@
+name: Test version input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          compiler: gfortran
+          version: "13"
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "version: $VERSION"
+          echo "fc: $FC"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be set"
+            exit 1
+          fi
+          if [ -z "$FC" ]; then
+            echo "FAIL: expected fc output to be set"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION fc=$FC"
+      - name: Assert gfortran is executable
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "fc: $FC"
+          if ! command -v "$FC" > /dev/null 2>&1; then
+            echo "FAIL: $FC is not executable"
+            exit 1
+          fi
+          echo "PASS: $FC is available"

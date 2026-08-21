@@ -1,0 +1,66 @@
+name: Test basic gfortran setup
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          compiler: gfortran
+          update-environment: "true"
+      - name: Assert version output is set
+        env:
+          VERSION: ${{ steps.action.outputs.version }}
+        run: |
+          echo "version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "FAIL: expected version output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: version=$VERSION"
+      - name: Assert fc output is set
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "fc: $FC"
+          if [ -z "$FC" ]; then
+            echo "FAIL: expected fc output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: fc=$FC"
+      - name: Assert cc output is set
+        env:
+          CC: ${{ steps.action.outputs.cc }}
+        run: |
+          echo "cc: $CC"
+          if [ -z "$CC" ]; then
+            echo "FAIL: expected cc output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: cc=$CC"
+      - name: Assert cxx output is set
+        env:
+          CXX: ${{ steps.action.outputs.cxx }}
+        run: |
+          echo "cxx: $CXX"
+          if [ -z "$CXX" ]; then
+            echo "FAIL: expected cxx output to be non-empty"
+            exit 1
+          fi
+          echo "PASS: cxx=$CXX"
+      - name: Assert gfortran is executable
+        env:
+          FC: ${{ steps.action.outputs.fc }}
+        run: |
+          echo "Checking gfortran is on PATH or fc is executable"
+          if command -v gfortran >/dev/null 2>&1; then
+            echo "PASS: gfortran found on PATH"
+          elif [ -n "$FC" ] && command -v "$FC" >/dev/null 2>&1; then
+            echo "PASS: fc=$FC is executable"
+          else
+            echo "FAIL: gfortran not found on PATH and fc not executable"
+            exit 1
+          fi
